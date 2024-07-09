@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Read the original Excel file
-original_file = 'path_to_your_file.xlsx'
+original_file = 'data.xlsx'
 df = pd.read_excel(original_file)
 
 # Define the vertical column and the verticals of interest

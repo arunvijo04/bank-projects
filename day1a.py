@@ -4,60 +4,40 @@ original_file = 'data.xlsx'
 df = pd.read_excel(original_file)
 
 category_column = 'Vertical'
-category1 = 'Commercial Vehicle & Construction Equipment'
-category2 = 'Personal Loan'
-category3 = 'Home Loans'
-category4 = 'Educational Loans'
-category5 = 'Staff Loans'
-category6 = 'Two Wheeler'
-category7 = 'MFI'
-category8 = 'Healthcare Finance (HCF/EF/RML)'
-category9 = 'Agri & MFI'
-category10 = 'Auto Loans'
-category11 = 'Credit Card'
-category12 = 'LAP'
-category13 = 'LDR/ODFD'
-category14 = 'Other Retail'
-category15 = 'SME & MSME'
-category16 = 'WSB'
+categories_group1 = ['Commercial Vehicle & Construction Equipment', 'Healthcare Finance (HCF/EF/RML)']
+categories_group2 = ['Home Loans', 'Educational Loans', 'Personal Loan']
 
-columns_to_keep = ['BRANCH_CODE', 'BRANCH_NAME', 'ZONE','ACNUM','ACCNAME','PRODUCT_DESCRIPTION','DERIVEDLIMIT','BALANCE','REASON','DEFAULT_AMT','CLIENT_ID','UCIC_ID','DEFAULT_DAT','EMI','OPEN_DATE','NO_OD_DAYS','CLIENT_SMA','ACNT_SMATYPE','ASON','Vertical']
+categories = [
+    'Agri & MFI', 'Auto Loans', 'Credit Card', 'Other Retail',
+    'LDR/ODFD', 'Staff Loans', 'Two Wheeler', 'MFI',
+    'LAP', 'SME & MSME', 'WSB'
+]
 
-df_category1 = df[df[category_column] in [category1,]]
-df_category2 = df[df[category_column] == category2]
-df_category3 = df[df[category_column] == category3]
-df_category4 = df[df[category_column] == category4]
-df_category5 = df[df[category_column] == category5]
-df_category6 = df[df[category_column] == category6]
-df_category7 = df[df[category_column] == category7]
-df_category8 = df[df[category_column] == category8]
+columns_to_keep = ['BRANCH_CODE', 'BRANCH_NAME', 'ZONE', 'ACNUM', 'ACCNAME', 'PRODUCT_DESCRIPTION',
+                   'DERIVEDLIMIT', 'BALANCE', 'REASON', 'DEFAULT_AMT', 'CLIENT_ID', 'UCIC_ID',
+                   'DEFAULT_DAT', 'EMI', 'OPEN_DATE', 'NO_OD_DAYS', 'CLIENT_SMA', 'ACNT_SMATYPE', 'ASON', 'Vertical']
 
-df_category1 = df_category1[columns_to_keep]
-df_category2 = df_category2[columns_to_keep]
-df_category3 = df_category3[columns_to_keep]
-df_category4 = df_category4[columns_to_keep]
-df_category5 = df_category5[columns_to_keep]
-df_category6 = df_category6[columns_to_keep]
-df_category7 = df_category7[columns_to_keep]
-df_category8 = df_category8[columns_to_keep]
+df_categories = {cat: df[df[category_column] == cat] for cat in categories}
+df_categories['LAP'] = df[df[category_column].str.contains('LAP', na=False)]
+df_categories['SME & MSME'] = df[df[category_column] == 'SME & MSME']
+df_categories['WSB'] = df[df[category_column] == 'WSB']
 
-output_file1 = category1+'.xlsx'
-output_file2 = category2+'.xlsx'
-output_file3 = category3+'.xlsx'
-output_file4 = category4+'.xlsx'
-output_file5 = category5+'.xlsx'
-output_file6 = category6+'.xlsx'
-output_file7 = category7+'.xlsx'
-output_file8 = category8+'.xlsx'
+sme_client_ids = set(df_categories['SME & MSME']['CLIENT_ID'])
+wsb_client_ids = set(df_categories['WSB']['CLIENT_ID'])
+all_sme_wsb_client_ids = sme_client_ids.union(wsb_client_ids)
 
+lap_client_ids = set(df_categories['LAP']['CLIENT_ID'])
+non_sme_lap_client_ids = lap_client_ids.difference(sme_client_ids)
+df_categories['LAP'] = df[df['CLIENT_ID'].isin(non_sme_lap_client_ids) & df[category_column].str.contains('LAP', na=False)]
 
-df_category1.to_excel(output_file1, index=False)
-df_category2.to_excel(output_file2, index=False)
-df_category3.to_excel(output_file3, index=False)
-df_category4.to_excel(output_file4, index=False)
-df_category5.to_excel(output_file5, index=False)
-df_category6.to_excel(output_file6, index=False)
-df_category7.to_excel(output_file7, index=False)
-df_category8.to_excel(output_file8, index=False)
+multi_vertical_client_ids = df[df['CLIENT_ID'].isin(all_sme_wsb_client_ids)]['CLIENT_ID']
+df_categories['WSB'] = df[df['CLIENT_ID'].isin(multi_vertical_client_ids) & df[category_column].str.contains('WSB', na=False)]
 
-print("Data successfully saved into two separate Excel files.")
+for cat in df_categories:
+    df_categories[cat] = df_categories[cat][columns_to_keep]
+
+for cat, data in df_categories.items():
+    output_file = cat.replace(' ', '_') + '.xlsx'
+    data.to_excel(output_file, index=False)
+
+print("Data successfully saved into separate Excel files.")
